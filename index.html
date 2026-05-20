@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Gaussian Splatting - Real-Time Radiance Field Rendering</title>
+  <meta name="description" content="3D Gaussian Splatting is a revolutionary technique for real-time radiance field rendering. Achieve state-of-the-art visual quality with real-time novel-view synthesis at 1080p resolution.">
+  <meta name="keywords" content="3D Gaussian Splatting, radiance field, novel-view synthesis, real-time rendering, NeRF, volumetric rendering, scene reconstruction, computer vision, graphics">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://3dgaussiansplatting.com/">
+  <meta property="og:title" content="3D Gaussian Splatting - Real-Time Radiance Field Rendering">
+  <meta property="og:description" content="State-of-the-art visual quality and real-time rendering for novel-view synthesis using 3D Gaussians.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="3D Gaussian Splatting - Real-Time Radiance Field Rendering">
+  <meta name="twitter:description" content="State-of-the-art visual quality and real-time rendering for novel-view synthesis using 3D Gaussians.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --accent: #6366f1;
+      --accent-light: #8b5cf6;
+      --bg: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-muted: #f1f5f9;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --text-tertiary: #94a3b8;
+      --border: #e2e8f0;
+      --card-bg: #ffffff;
+      --gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+    }
+
+    html {
+      font-family: var(--font-sans);
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navigation */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .nav-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--gradient);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span {
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent);
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 100px 24px 80px;
+      background: var(--bg-subtle);
+    }
+
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero .subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 32px;
+      line-height: 1.6;
+    }
+
+    .hero .authors {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      margin-bottom: 40px;
+    }
+
+    .hero .authors a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .hero .authors a:hover {
+      text-decoration: underline;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: var(--gradient);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      background: var(--bg-subtle);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Section */
+    section {
+      padding: 80px 0;
+    }
+
+    section + section {
+      border-top: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 640px;
+      line-height: 1.7;
+    }
+
+    /* Abstract / Overview */
+    .abstract-card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      margin-top: 24px;
+    }
+
+    .abstract-card p {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      font-size: 15px;
+    }
+
+    /* Grid features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .feature-card {
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+    }
+
+    .feature-card .num {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* How it works steps */
+    .steps {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--bg);
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 10px;
+      background: var(--bg-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-tertiary);
+    }
+
+    .step-content h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .step-content p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Command blocks */
+    .cmd-block {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-top: 24px;
+      overflow-x: auto;
+    }
+
+    .cmd-block code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #e2e8f0;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    .cmd-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+
+    /* Why it matters */
+    .matters-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .matter-card {
+      padding: 28px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      text-align: center;
+    }
+
+    .matter-card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .matter-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* FAQ */
+    .faq-list {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+
+    .faq-item:first-child {
+      border-top: 1px solid var(--border);
+    }
+
+    .faq-question {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .faq-answer {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .faq-answer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .faq-answer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Primary sources */
+    .sources-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .source-card {
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .source-card:hover {
+      border-color: var(--accent);
+    }
+
+    .source-card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .source-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    footer p {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Quick Start */
+    .qs-step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .qs-step:last-child {
+      border-bottom: none;
+    }
+
+    .qs-num {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 8px;
+      background: var(--bg-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .qs-content h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .qs-content p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 32px; }
+      .hero { padding: 60px 20px 50px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .matters-grid { grid-template-columns: 1fr; }
+      .sources-grid { grid-template-columns: 1fr; }
+      .section-title { font-size: 24px; }
+      nav { padding: 16px 20px; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="nav-wrapper">
+  <nav>
+    <a href="/" class="logo">
+      <div class="logo-icon">3D</div>
+      <div class="logo-text">3DGS <span>Gaussian Splatting</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="#overview">Overview</a>
+      <a href="#how-it-works">Pipeline</a>
+      <a href="#quickstart">Quick Start</a>
+      <a href="#faq">FAQ</a>
+    </div>
+  </nav>
+</div>
+
+<section class="hero">
+  <div class="container">
+    <h1>3D Gaussian Splatting</h1>
+    <p class="subtitle">Real-time radiance field rendering that achieves state-of-the-art visual quality while maintaining competitive training times and enabling high-quality real-time novel-view synthesis at 1080p resolution.</p>
+    <p class="authors">Bernhard Kerbl*, Georgios Kopanas*, Thomas Leimkühler, George Drettakis &middot; <a href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/" target="_blank">GRAPHDECO &middot; Inria</a></p>
+    <div class="hero-actions">
+      <a href="https://mirofish.my/" class="btn-primary" target="_blank">Get Started</a>
+      <a href="https://github.com/graphdeco-inria/gaussian-splatting" class="btn-secondary" target="_blank">View the GitHub repo</a>
+    </div>
+  </div>
+</section>
+
+<section id="overview">
+  <div class="container">
+    <p class="section-label">Overview</p>
+    <h2 class="section-title">What is 3D Gaussian Splatting?</h2>
+    <p class="section-desc">A breakthrough representation that preserves the desirable properties of continuous volumetric radiance fields while avoiding unnecessary computation in empty space.</p>
+
+    <div class="abstract-card">
+      <p>Radiance Field methods have recently revolutionized novel-view synthesis of scenes captured with multiple photos or videos. However, achieving high visual quality still requires neural networks that are costly to train and render, while recent faster methods inevitably trade off speed for quality. For unbounded and complete scenes (rather than isolated objects) and 1080p resolution rendering, no current method can achieve real-time display rates.</p>
+      <p style="margin-top: 16px;">We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (&ge; 30 fps) novel-view synthesis at 1080p resolution.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <p class="section-label">Core Elements</p>
+    <h2 class="section-title">What makes 3DGS different</h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <p class="num">01</p>
+        <h3>3D Gaussian Scene Representation</h3>
+        <p>Starting from sparse points produced during camera calibration, the scene is represented with 3D Gaussians that preserve desirable properties of continuous volumetric radiance fields while avoiding unnecessary computation in empty space.</p>
+      </div>
+
+      <div class="feature-card">
+        <p class="num">02</p>
+        <h3>Interleaved Optimization and Density Control</h3>
+        <p>Performs interleaved optimization and density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene.</p>
+      </div>
+
+      <div class="feature-card">
+        <p class="num">03</p>
+        <h3>Fast Visibility-Aware Rendering</h3>
+        <p>A fast visibility-aware rendering algorithm that supports anisotropic splatting and both accelerates training and allows real-time rendering at 1080p resolution.</p>
+      </div>
+
+      <div class="feature-card">
+        <p class="num">04</p>
+        <h3>State-of-the-Art Results</h3>
+        <p>Demonstrates state-of-the-art visual quality and real-time rendering on several established datasets including MipNeRF360, Tanks &amp; Temples, and Deep Blending.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works">
+  <div class="container">
+    <p class="section-label">Pipeline</p>
+    <h2 class="section-title">How 3D Gaussian Splatting works</h2>
+    <p class="section-desc">A complete pipeline from sparse SfM points to real-time rendering at 1080p.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h3>Structure from Motion Input</h3>
+          <p>The pipeline starts with sparse point clouds from SfM (Structure from Motion) calibration. These points serve as the initial seed for the 3D Gaussian representation.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h3>Initialize 3D Gaussians</h3>
+          <p>Each input point initializes a 3D Gaussian with position, anisotropic covariance, opacity, and spherical harmonics coefficients for view-dependent appearance.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <h3>Optimize with Density Control</h3>
+          <p>Through interleaved optimization and adaptive density control, Gaussians are added, removed, and refined to accurately capture scene geometry and appearance.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <h3>Tile-Based Splatting Rasterization</h3>
+          <p>A differentiable tile-based rasterizer efficiently sorts and renders Gaussians, enabling fast alpha-blending and real-time frame rates at 1080p resolution.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <p class="section-label">Why It Matters</p>
+    <h2 class="section-title">Real-time radiance fields are finally here</h2>
+
+    <div class="matters-grid">
+      <div class="matter-card">
+        <h3>Real-time rendering</h3>
+        <p>Achieves &ge; 30 fps novel-view synthesis at 1080p resolution for unbounded, complete scenes.</p>
+      </div>
+      <div class="matter-card">
+        <h3>Competitive training</h3>
+        <p>Training times are comparable to or faster than NeRF-based methods while achieving superior quality.</p>
+      </div>
+      <div class="matter-card">
+        <h3>No neural network</h3>
+        <p>Uses explicit 3D Gaussians instead of neural networks, making rendering fast and interpretable.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="container">
+    <p class="section-label">Quick Start</p>
+    <h2 class="section-title">How to go from reading about 3DGS to running it</h2>
+    <p class="section-desc">The codebase assumes a CUDA-ready GPU, Conda environment, and compatible C++ compiler. If that matches your setup, this is the shortest path to a first run.</p>
+
+    <div class="qs-step">
+      <div class="qs-num">01</div>
+      <div class="qs-content">
+        <h3>Clone the repository</h3>
+        <p>Clone with submodules to get the optimizer, viewers, and utility scripts.</p>
+      </div>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label">Terminal</div>
+      <code>git clone https://github.com/graphdeco-inria/gaussian-splatting --recursive
+cd gaussian-splatting</code>
+    </div>
+
+    <div class="qs-step" style="margin-top: 20px;">
+      <div class="qs-num">02</div>
+      <div class="qs-content">
+        <h3>Set up the Conda environment</h3>
+        <p>Install all dependencies including PyTorch and CUDA extensions in a dedicated environment.</p>
+      </div>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label">Terminal</div>
+      <code>conda env create --file environment.yml
+conda activate gaussian_splatting</code>
+    </div>
+
+    <div class="qs-step" style="margin-top: 20px;">
+      <div class="qs-num">03</div>
+      <div class="qs-content">
+        <h3>Train on your own data</h3>
+        <p>Prepare your images with COLMAP and run the optimizer to produce a 3D Gaussian model.</p>
+      </div>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label">Terminal</div>
+      <code>python train.py -s &lt;path to COLMAP or NeRF Synthetic dataset&gt;</code>
+    </div>
+
+    <div class="qs-step" style="margin-top: 20px;">
+      <div class="qs-num">04</div>
+      <div class="qs-content">
+        <h3>View the result in real time</h3>
+        <p>Use the SIBR real-time viewer to render and explore your trained model interactively.</p>
+      </div>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label">Terminal</div>
+      <code>./&lt;SIBR install dir&gt;/bin/SIBR_gaussianViewer_app -m &lt;path to trained model&gt;</code>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <p class="section-label">New Features</p>
+    <h2 class="section-title">Recent updates to the codebase</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-content">
+          <h3>Training speed acceleration (Oct 2024)</h3>
+          <p>Integrated drop-in replacements for a 1.6x speedup using the default optimizer and a 2.7x speedup using the sparse Adam optimizer.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-content">
+          <h3>Depth regularization</h3>
+          <p>Uses depth maps as priors during optimization for better reconstruction on untextured surfaces, reducing floaters.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-content">
+          <h3>Exposure compensation</h3>
+          <p>Optimizes affine transformations per image to compensate for exposure changes in uncontrolled captures.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-content">
+          <h3>Anti-aliasing and OpenXR support</h3>
+          <p>EWA filtering from Mip-Splatting removes aliasing artifacts. OpenXR support enables VR viewing of Gaussian scenes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <p class="section-label">FAQ</p>
+    <h2 class="section-title">The fastest answers to the questions people ask first</h2>
+    <p class="section-desc">Start here if you want to understand the hardware requirements, data pipelines, or common setup issues without reading the whole repository first.</p>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <p class="faq-question">Who created 3D Gaussian Splatting?</p>
+        <p class="faq-answer">3D Gaussian Splatting was created by Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, and George Drettakis from <a href="https://www.inria.fr/en" target="_blank">Inria</a> at the <a href="https://team.inria.fr/graphdeco/" target="_blank">GRAPHDECO</a> research group. The research was funded by the ERC Advanced grant FUNGRAPH No 788065.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-question">What hardware do I need to train a model?</p>
+        <p class="faq-answer">A CUDA-ready GPU with Compute Capability 7.0+ and 24 GB of VRAM to train to paper evaluation quality. For smaller VRAM configurations, see recommendations on adjusting the densification parameters in the FAQ.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-question">Can I run this on Windows, Linux, or macOS?</p>
+        <p class="faq-answer">The codebase has been tested on <strong>Windows 10</strong> and <strong>Ubuntu Linux 22.04</strong>. The viewers require OpenGL 4.5. macOS and other platforms are not officially supported. A <a href="https://github.com/camenduru/gaussian-splatting-colab" target="_blank">Colab template</a> is available for quick access.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-question">What datasets are available for evaluation?</p>
+        <p class="faq-answer">Standard evaluation uses <strong>MipNeRF360</strong>, <strong>Tanks &amp; Temples</strong>, and <strong>Deep Blending</strong> datasets. Pre-trained models (14 GB), evaluation images (7 GB), and COLMAP SfM datasets are available from the <a href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/" target="_blank">project page</a>.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-question">How can I process my own images?</p>
+        <p class="faq-answer">Use the provided <code>convert.py</code> script with COLMAP and optionally ImageMagick. Place your images in an <code>input</code> directory and run the conversion pipeline to generate undistorted, resized images with SfM information.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-question">What's the BibTeX citation for this work?</p>
+        <p class="faq-answer">
+          <code style="font-size: 12px; display: block; padding: 12px; background: var(--bg-muted); border-radius: 8px; margin-top: 8px;">@Article{kerbl3Dgaussians,<br>
+          &nbsp;&nbsp;author = {Kerbl, Bernhard and Kopanas, Georgios and Leimk{\"u}hler, Thomas and Drettakis, George},<br>
+          &nbsp;&nbsp;title = {3D Gaussian Splatting for Real-Time Radiance Field Rendering},<br>
+          &nbsp;&nbsp;journal = {ACM Transactions on Graphics},<br>
+          &nbsp;&nbsp;number = {4},<br>
+          &nbsp;&nbsp;volume = {42},<br>
+          &nbsp;&nbsp;month = {July},<br>
+          &nbsp;&nbsp;year = {2023},<br>
+          &nbsp;&nbsp;url = {https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/}<br>
+          }</code>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <p class="section-label">Primary Sources</p>
+    <h2 class="section-title">Every claim is grounded in the original research</h2>
+    <p class="section-desc">Explore the official paper, codebase, and supplementary materials for complete details.</p>
+
+    <div class="sources-grid">
+      <a href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/" class="source-card" target="_blank">
+        <h3>Official Project Page</h3>
+        <p>The source for the paper, datasets, pre-trained models, and SIBR viewer binaries.</p>
+      </a>
+
+      <a href="https://github.com/graphdeco-inria/gaussian-splatting" class="source-card" target="_blank">
+        <h3>GitHub Repository</h3>
+        <p>Official authors implementation with PyTorch optimizer, network viewer, and real-time viewer.</p>
+      </a>
+
+      <a href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/3d_gaussian_splatting_high.pdf" class="source-card" target="_blank">
+        <h3>Full Paper (PDF)</h3>
+        <p>Published in ACM Transactions on Graphics (SIGGRAPH 2023), detailing the method and results.</p>
+      </a>
+
+      <a href="https://youtu.be/T_kXY43VZnk" class="source-card" target="_blank">
+        <h3>Video Presentation</h3>
+        <p>Conference presentation and supplementary video showcasing real-time rendering results.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>3D Gaussian Splatting &middot; Research by <a href="https://team.inria.fr/graphdeco/" target="_blank">GRAPHDECO</a>, Inria</p>
+  </div>
+</footer>
+
+</body>
+</html>
